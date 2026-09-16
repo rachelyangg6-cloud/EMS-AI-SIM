@@ -1,0 +1,71 @@
+[project]
+name = "ems-protocol-wiki"
+version = "0.1.0"
+description = "Offline-first RAG/LLM system for EMS field protocol lookup"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.40",             # Claude API client (build-phase LLM)
+    "PyYAML>=6.0",
+    "pdfminer.six>=20221105",      # text-only PDF extraction (ignores vector graphics)
+]
+
+[project.optional-dependencies]
+embeddings = [
+    # Local embeddings, no API calls. An extra rather than a base dependency
+    # because it pulls torch (~500MB) and only the authoring CLIs reach it:
+    # protocol-ingest, protocol-generate (grounding), protocol-query (vector
+    # half of hybrid rank). The served app never embeds — ems/web/server.py
+    # has no path to ems.query or ems.embeddings — so a server install
+    # would otherwise carry a gigabyte of PyTorch it never imports.
+    #
+    # Authoring installs need it:  pip install -e '.[web,dev,embeddings]'
+    "sentence-transformers>=2.2",
+]
+extraction = [
+    "ocrmac",        # Apple Vision OCR for scanned page images (local, offline)
+    "pytesseract",   # fallback OCR for scanned/legacy SOPs
+    "easyocr",
+]
+local = [
+    "openai>=1.0",   # OpenAI-compatible client → local Ollama endpoint (future offline SLM path)
+]
+web = [
+    "fastapi>=0.110",         # simulator API
+    "uvicorn[standard]>=0.27",
+    "python-multipart>=0.0.9",  # /api/stt audio upload
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "httpx>=0.27",   # fastapi.testclient
+]
+
+[project.scripts]
+protocol-add-source   = "ems.cli.add_source:main"
+protocol-add-resource = "ems.cli.resource:main"
+protocol-scenarios    = "ems.cli.scenarios:main"
+protocol-ingest       = "ems.cli.ingest:main"
+protocol-query      = "ems.cli.query:main"
+protocol-graph      = "ems.cli.graph:main"
+protocol-embed      = "ems.cli.embed:main"
+protocol-difficulty = "ems.cli.difficulty:main"
+protocol-practice   = "ems.cli.practice:main"
+protocol-serve      = "ems.cli.serve:main"
+protocol-patterns   = "ems.cli.patterns:main"
+protocol-rubric-check = "ems.cli.rubric_check:main"
+protocol-generate   = "ems.cli.generate:main"
+protocol-review     = "ems.cli.review:main"
+protocol-transcript = "ems.cli.transcript:main"
+protocol-context-check = "ems.cli.context_check:main"
+protocol-users      = "ems.cli.users:main"
+protocol-obsidian   = "ems.cli.obsidian:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ems"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

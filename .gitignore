@@ -1,0 +1,40 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+# Credentials. The glob, not just `.env`: a stray `.en` — one keystroke
+# short, byte-identical, holding a live API key — was committed and pushed
+# because only the exact name was ignored. Anything env-shaped is a secret
+# until proven otherwise.
+.env
+.en
+.env.*
+.en*
+*.env
+
+# simulator practice history (SQLite; per-install, never content)
+var/
+
+# Obsidian's per-vault state — pane layout, plugin settings, recent files.
+# The wiki is the content; how one person happens to be looking at it is not.
+wiki/.obsidian/
+
+# generated retrieval indexes (rebuild with protocol-embed / protocol-graph)
+system/embeddings.json
+system/graph.yaml
+
+# frontend build output and deps
+frontend/node_modules/
+frontend/dist/
+
+# Generated Obsidian vault — rebuild with `python -m ems.cli.obsidian export`.
+# Derived from wiki/, which is the source of truth; nothing reads this back.
+obsidian_wiki/
+
+# Source material you ingest — resources, SOPs, their OCR output — is yours to
+# license, not this repository's to publish. Nothing here is ever committed.
+raw/*
+!raw/README.md

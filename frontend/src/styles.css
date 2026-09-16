@@ -1,0 +1,716 @@
+/* Warm paper rather than a dark console. The one thing that stays dark is the
+   vitals monitor: a monitor should read as a screen, and inverting it would
+   make a measured number look like a form field. The scene's sky gradients are
+   likewise untouched — they are a depicted sky, not chrome. */
+:root {
+  --bg: #f0eee6;          /* page — warm cream */
+  --panel: #faf9f5;       /* raised card */
+  --panel-2: #edeae0;     /* inset: inputs, chips */
+  --line: #ddd8cc;
+  --ink: #181818;
+  --muted: #6b6b63;
+  --accent: #cc785c;      /* clay: primary buttons, focus rings */
+  --accent-soft: #f5e6df;
+  --live: #1f7a4d;
+  --warn: #a8621b;
+  --bad: #b3382f;
+  --ok: #1f7a4d;
+  /* Only the monitor uses these, and it is deliberately not on the page's
+     palette — see .reading below. */
+  --screen: #0b0f14;
+  --screen-line: #33415a;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+.app {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 16px 16px 48px;
+}
+.app--wide { max-width: 1320px; }
+
+button {
+  font: inherit;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.45; cursor: default; }
+button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+button.ghost:hover:not(:disabled) { color: var(--ink); border-color: var(--muted); }
+
+/* A focus ring that survives on cream. The default one is a hairline nobody
+   tabbing through a form can find. */
+:where(button, input, select, textarea, a):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input, select {
+  font: inherit;
+  width: 100%;
+  padding: 11px 12px;
+  margin-top: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+}
+input::placeholder { color: var(--muted); opacity: 0.7; }
+
+.toggles { position: fixed; top: 10px; right: 10px; display: flex; gap: 2px; z-index: 5; }
+.sound { background: transparent; font-size: 20px; padding: 6px; }
+.hint { margin: 0; font-size: 13px; color: var(--muted); }
+
+/* A checkbox is not a text field: the blanket `input { width: 100% }` above
+   stretched it across the card and pushed its label onto the next line. */
+/* `.card label` is a class *and* a type selector, so a bare `.checkbox` loses
+   to its `display: block`. */
+.card label.checkbox, .checkbox { display: flex; align-items: center; gap: 9px; }
+.checkbox input[type='checkbox'] {
+  width: auto; margin: 0; flex: none; accent-color: var(--accent);
+  width: 16px; height: 16px;
+}
+
+.ptt {
+  flex: none; width: 52px; font-size: 20px; background: var(--panel-2);
+  border: 1px solid var(--line); line-height: 1; touch-action: none;
+  -webkit-user-select: none; user-select: none;
+}
+.ptt--live { background: var(--bad); border-color: var(--bad); color: #fff; animation: pulse 1s ease-in-out infinite; }
+
+/* ── setup cards ─────────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 12vh;
+  display: grid;
+  gap: 14px;
+}
+.card h1 { margin: 0; font-size: 26px; }
+.card .sub { margin: -8px 0 4px; color: var(--muted); }
+.card label { display: block; font-size: 13px; color: var(--muted); }
+.card label em { font-style: normal; opacity: 0.7; }
+.error { color: var(--bad); margin: 0; }
+
+/* ── landing ─────────────────────────────────────────────────────────────── */
+
+/* What this is on the left, the way in on the right. One column below 840px,
+   with the login first — somebody who already has an account should not have
+   to scroll past the pitch to use it. */
+.landing {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
+  gap: 48px;
+  align-items: start;
+  padding-top: 8vh;
+}
+@media (max-width: 840px) {
+  .landing { grid-template-columns: 1fr; gap: 28px; padding-top: 4vh; }
+  .landing-login { order: -1; margin-top: 0; }
+}
+
+.landing-pitch h1 {
+  margin: 8px 0 0;
+  font-size: clamp(30px, 4.4vw, 46px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+.lede { margin: 16px 0 0; font-size: 17px; line-height: 1.6; color: #3a3a35; max-width: 46ch; }
+
+.landing-points { margin: 32px 0 0; display: grid; gap: 18px; }
+.landing-points div { border-top: 1px solid var(--line); padding-top: 14px; }
+.landing-points dt { font-weight: 600; font-size: 15px; }
+.landing-points dd { margin: 4px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; max-width: 48ch; }
+
+.landing-login { margin-top: 0; }
+.landing-login h2 { margin: 0; font-size: 22px; }
+
+/* Full width under both columns. The rule above it is doing the same work the
+   dividers in .landing-points do — separating this from the pitch without a
+   box around it. */
+.landing-contact {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--line);
+  margin-top: 40px;
+  padding-top: 24px;
+}
+.landing-contact h2 { margin: 0; font-size: 18px; }
+.landing-contact p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 62ch;
+}
+@media (max-width: 840px) {
+  .landing-contact { margin-top: 24px; }
+}
+
+/* ── menu, profile and history ───────────────────────────────────────────── */
+
+.row { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.row h1, .row h2 { margin: 0; }
+
+.menu-links {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  margin-top: 2px;
+}
+.link {
+  background: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.link:hover { color: var(--accent); }
+
+.history { margin-top: 6vh; }
+.history-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.history-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 0;
+  padding: 12px 14px;
+  font-size: 14px;
+}
+.history-row:hover { background: var(--panel-2); }
+.history-row.is-open { background: var(--accent-soft); }
+.history-when { color: var(--muted); }
+.history-what { font-weight: 600; }
+.history-level { color: var(--muted); font-size: 13px; }
+@media (max-width: 620px) {
+  .history-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; }
+  .history-level { display: none; }
+}
+
+.score { font-variant-numeric: tabular-nums; font-weight: 700; justify-self: end; }
+.score--good { color: var(--ok); }
+.score--fair { color: var(--warn); }
+.score--poor { color: var(--bad); }
+.score--none { color: var(--muted); font-weight: 400; font-size: 13px; }
+/* The points ride along with the verdict rather than competing with it: the
+   pass/fail is the finding, the fraction is the evidence. */
+.score-points { font-weight: 400; color: var(--muted); font-size: 13px; }
+.verdict--pass { color: var(--ok); }
+.verdict--fail { color: var(--bad); }
+
+.history-detail {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+.history-detail h3 { margin: 4px 0 0; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.history-marks { list-style: none; margin: 0; padding: 0; display: flex; gap: 20px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+.history-marks strong { color: var(--ink); font-size: 18px; font-variant-numeric: tabular-nums; }
+.history-marks .bad strong { color: var(--bad); }
+
+.history-turns {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+.history-turns .turn { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 10px; margin: 0; font-size: 14px; }
+.turn-speaker { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.turn--emt .turn-text { font-weight: 600; }
+
+/* ── the call ────────────────────────────────────────────────────────────── */
+
+.call { display: grid; gap: 12px; }
+.call-head { display: flex; gap: 8px; align-items: center; }
+
+/* Scene left, talk right. The columns are independent scrollers so the picture
+   never moves when the transcript grows. */
+.call-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.call-left { display: grid; gap: 12px; min-width: 0; }
+.call-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  /* Match the viewport rather than the scene, so a long call still scrolls
+     inside the panel instead of pushing the page down. */
+  height: calc(100vh - 120px);
+  min-height: 360px;
+}
+
+@media (max-width: 900px) {
+  .call-body { grid-template-columns: 1fr; }
+  .call-side { height: auto; }
+  .call-side .transcript { max-height: 260px; }
+}
+.tag {
+  font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase;
+  background: var(--panel-2); border: 1px solid var(--line);
+  padding: 4px 9px; border-radius: 999px; color: var(--muted);
+}
+.tag--muted { opacity: 0.7; }
+
+.stage { position: relative; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); }
+
+.scene { position: relative; aspect-ratio: 5 / 3; }
+/* Each layer of the arrival push-in. The transform is set per frame from a
+   spring in SceneView; this only gives it something to transform. */
+.scene-layer { position: absolute; inset: 0; will-change: transform; }
+.scene-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.scene-stage { position: absolute; inset: 0; display: grid; place-items: center; }
+.scene-empty { color: rgba(255, 255, 255, 0.75); font-size: 14px; }
+
+.patient { height: 86%; filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4)); }
+
+/* The chest transform is computed per frame in Patient.tsx — an asymmetric
+   respiratory curve with an end-expiratory pause, which a keyframe pair cannot
+   express. Nothing is left for CSS to do here but keep the box honest. */
+.chest { transform-box: view-box; }
+
+.hazards, .bystanders, .equipment { position: absolute; margin: 0; padding: 0; list-style: none; font-size: 12px; }
+.hazards { top: 10px; left: 10px; display: grid; gap: 4px; }
+/* These sit on the scene, not on the page, so they keep their own scrim and
+   stay legible whether the sky is noon or midnight. */
+.hazards li { background: rgba(163, 42, 34, 0.92); color: #fff; padding: 3px 8px; border-radius: 6px; }
+.bystanders { bottom: 10px; left: 10px; display: flex; gap: 8px; }
+.bystanders li {
+  background: rgba(0, 0, 0, 0.45); color: #fff; padding: 3px 9px; border-radius: 999px;
+  display: flex; align-items: center; gap: 6px;
+}
+.bystander-figure { width: 8px; height: 14px; border-radius: 4px 4px 2px 2px; background: rgba(255, 255, 255, 0.75); }
+.bystanders em { font-style: normal; opacity: 0.75; }
+.equipment { bottom: 10px; right: 10px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.equipment li { background: rgba(0, 0, 0, 0.45); color: #f0eee6; padding: 3px 8px; border-radius: 6px; }
+
+/* ── cinematic overlays ──────────────────────────────────────────────────── */
+
+/* A phase change is a move, not a cut. The card comes up from below and
+   settles slightly past its mark before coming back — the scrim fades on its
+   own, faster, so the card is arriving into a stage that is already there.
+
+   The bezier is a spring's shape rather than a spring: an overlay that mounts
+   once does not need a per-frame integrator, and paying for one would be worse
+   than the fade it replaces. */
+.cinematic {
+  position: absolute; inset: 0; display: grid; place-content: center; gap: 10px;
+  text-align: center; padding: 24px; backdrop-filter: blur(2px);
+  background: rgba(8, 11, 16, 0.72);
+  animation: scrim 260ms ease both;
+}
+.cinematic > * { animation: settle 520ms cubic-bezier(0.16, 1.02, 0.3, 1) both; }
+/* Staggered, so the label reads before the body it labels. */
+.cinematic > *:nth-child(2) { animation-delay: 60ms; }
+.cinematic > *:nth-child(3) { animation-delay: 110ms; }
+.cinematic > *:nth-child(4) { animation-delay: 150ms; }
+
+@keyframes scrim { from { opacity: 0; } to { opacity: 1; } }
+@keyframes settle {
+  from { opacity: 0; transform: translateY(22px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+/* The overlay keeps its dark scrim — it sits on the scene, not on the page —
+   so its type is light. Reading these off the page palette put near-black text
+   on a near-black card. */
+.cinematic { color: #f2efe7; }
+.cad-label { margin: 0; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #f0a860; }
+.cad-unit { margin: 0; font-size: 24px; font-weight: 700; color: #fff; }
+.cad-body { margin: 0; color: #e6e2d8; max-width: 46ch; }
+.cinematic .ghost { color: #cfc9bb; border-color: rgba(255, 255, 255, 0.28); }
+.cinematic .ghost:hover:not(:disabled) { color: #fff; border-color: rgba(255, 255, 255, 0.5); }
+
+/* A sweeping glow with falloff rather than a stepped opacity flip. A real
+   lightbar throws light past itself; `steps(1)` could only ever strobe. */
+.lightbar { display: flex; gap: 10px; justify-content: center; }
+.lightbar span {
+  width: 42px; height: 10px; border-radius: 5px;
+  background: linear-gradient(100deg, #6b2a2f 0%, #f0616d 42%, #ff9aa2 50%, #f0616d 58%, #6b2a2f 100%);
+  background-size: 260% 100%;
+  --glow: rgba(240, 97, 109, 0.55);
+  animation: sweep 1400ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+.lightbar span:last-child {
+  background-image: linear-gradient(100deg, #24406b 0%, #4a7fd4 42%, #a8c6f5 50%, #4a7fd4 58%, #24406b 100%);
+  --glow: rgba(74, 127, 212, 0.55);
+  animation-delay: 700ms;
+}
+@keyframes sweep {
+  0% { background-position: 130% 0; box-shadow: none; }
+  46% { box-shadow: 0 0 16px 3px var(--glow); }
+  100% { background-position: -30% 0; box-shadow: none; }
+}
+
+/* The doors swing on a hinge at their own outer edge, in perspective, and
+   keep going a touch past open before settling — a door has mass. */
+.doors { display: flex; gap: 4px; justify-content: center; perspective: 340px; }
+.doors span {
+  width: 34px; height: 54px; background: rgba(255, 255, 255, 0.16); border-radius: 4px;
+  transform-origin: left center;
+  animation: open 1100ms cubic-bezier(0.2, 0.9, 0.25, 1.06) both;
+}
+.doors span:last-child { transform-origin: right center; animation-name: open-r; }
+@keyframes open {
+  from { transform: none; }
+  to { transform: translateX(-14px) rotateY(52deg); background: rgba(255, 255, 255, 0.06); }
+}
+@keyframes open-r {
+  from { transform: none; }
+  to { transform: translateX(14px) rotateY(-52deg); background: rgba(255, 255, 255, 0.06); }
+}
+
+/* ── monitor ─────────────────────────────────────────────────────────────── */
+
+.monitor {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+  background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  position: relative;
+}
+/* Deliberately not on the page palette: a monitor should read as a screen. */
+.reading { background: var(--screen); padding: 10px 12px; display: grid; gap: 2px; }
+.reading-label {
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8ea0bb;
+  display: flex; align-items: center; gap: 6px;
+}
+/* Marks a number the simulator invented because the scenario never said. */
+.sim-tag {
+  font-size: 9px; letter-spacing: 0.08em; padding: 1px 4px; border-radius: 4px;
+  color: #f6a94a; border: 1px solid rgba(246, 169, 74, 0.45);
+  text-decoration: none; cursor: help;
+}
+.reading-value { font-size: 26px; font-variant-numeric: tabular-nums; font-weight: 600; color: #4ade80; }
+.reading-value em { font-style: normal; font-size: 14px; margin-left: 2px; }
+.reading--unknown .reading-value { color: var(--screen-line); }
+.reading--known { animation: lit 600ms ease both; }
+@keyframes lit { from { background: #14351f; } to { background: var(--screen); } }
+
+/* ── turn prompt ─────────────────────────────────────────────────────────── */
+
+.turn { display: grid; gap: 8px; margin-top: 22px; }
+/* Pinned under the transcript, so the input sits where you last read. */
+.call-side .turn { margin-top: 0; flex: 0 0 auto; }
+.turn-prompt { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.turn--yours .turn-prompt { color: var(--ink); font-weight: 600; }
+
+.hint-toggle {
+  margin-left: auto; padding: 3px 10px; font-size: 12px; border-radius: 999px;
+  background: transparent; color: var(--muted); border: 1px solid var(--line);
+  font-weight: 400;
+}
+.hint-toggle--on { color: var(--warn); border-color: var(--warn); }
+
+.turn--over { gap: 12px; }
+.turn--over .turn-prompt { color: var(--ink); font-weight: 600; }
+
+.nudge {
+  margin: 0; padding: 8px 12px; border-radius: 10px; font-size: 14px;
+  color: #7a4712; background: rgba(204, 120, 92, 0.1);
+  border: 1px solid rgba(204, 120, 92, 0.35);
+}
+.pip { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.pip--live { background: var(--live); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.5); opacity: 0.55; } }
+.turn-row { display: flex; gap: 8px; }
+.turn-row input { margin-top: 0; }
+.turn-row button { white-space: nowrap; }
+
+/* ── transcript ──────────────────────────────────────────────────────────── */
+
+.transcript {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; max-height: 240px; overflow-y: auto; display: grid; gap: 8px;
+}
+/* In the side panel the transcript takes whatever height is left over and
+   scrolls; `align-content: start` keeps a short call at the top instead of
+   stretching four lines across the whole column. */
+.call-side .transcript { flex: 1 1 auto; min-height: 0; max-height: none; align-content: start; }
+.line { margin: 0; font-size: 14px; color: #3a3a35; }
+.who { display: inline-block; min-width: 74px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.line--emt { color: var(--ink); font-weight: 600; }
+.line--dispatcher { color: var(--warn); }
+.line--patient { color: #2c5d86; }
+
+/* ── debrief ─────────────────────────────────────────────────────────────── */
+
+.debrief { display: grid; gap: 14px; padding-top: 14px; }
+.debrief-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.debrief-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.debrief-head h1 { margin: 0; font-size: 46px; }
+.debrief-head h1 span { font-size: 18px; color: var(--muted); }
+.eyebrow { margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+.panel h2 { margin: 0 0 10px; font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.panel--critical { border-color: var(--bad); }
+.panel--critical h2 { color: var(--bad); }
+.panel--critical code { color: var(--bad); font-size: 12px; }
+.panel ul, .panel ol { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+.checklist { list-style: none; padding: 0; }
+.checklist .ok { color: var(--ok); }
+.checklist .miss { color: var(--muted); }
+.actions { list-style: none; padding: 0; }
+.action { display: flex; gap: 10px; align-items: flex-start; }
+.action .mark { width: 18px; flex: none; font-weight: 700; }
+.action--hit .mark { color: var(--ok); }
+.action--partial .mark { color: var(--warn); }
+.action--missed { color: var(--muted); }
+.action--missed .mark { color: var(--bad); }
+.action .step { margin: 0; }
+/* What the trainee actually said, so a wording problem is distinguishable from
+   a clinical one. Quiet: it is evidence, not the lesson. */
+.said { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+.cites { margin: 3px 0 0; color: var(--muted); font-size: 11px; letter-spacing: 0.02em; }
+.note { display: block; color: var(--warn); font-style: normal; font-size: 13px; margin-top: 3px; }
+
+/* The plain-English account of the call, read before any checklist. */
+.heard-so-far {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.debrief-summary { margin: 0; font-size: 16px; line-height: 1.55; }
+
+.breakdown { width: 100%; border-collapse: collapse; }
+.breakdown th { text-align: left; font-weight: 400; color: var(--muted); padding: 3px 0; }
+.breakdown td { text-align: right; font-variant-numeric: tabular-nums; padding: 3px 0; }
+.breakdown .of { color: var(--muted); }
+
+/* What to fix first, lifted out of the full list so it is not buried. */
+.panel--focus { border-color: var(--warn); }
+.panel--focus h2 { color: var(--warn); }
+
+/* The scenario author's reasoning. The part that answers "why". */
+/* A verdict on the scenario, not on the trainee — visually separate from the
+   score so the two judgements do not blur together. */
+.panel--review { border-color: var(--accent, var(--warn)); display: grid; gap: 10px; }
+.panel--review label { display: grid; gap: 4px; }
+.panel--review textarea {
+  font: inherit; padding: 8px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--panel); color: inherit;
+  resize: vertical;
+}
+.panel--review input[type='range'] { accent-color: var(--accent); }
+.realism-value { color: var(--muted); font-variant-numeric: tabular-nums; }
+.review-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.panel--why p { margin: 0 0 10px; line-height: 1.6; }
+.panel--why p:last-child { margin-bottom: 0; }
+
+/* The written debrief. Accent-edged because it is the part to read first, and
+   the three sub-headings need to read as sub-headings rather than as three more
+   panels — hence the smaller, non-uppercase h3. */
+.panel--narrative { border-color: var(--accent); display: grid; gap: 12px; }
+.panel--narrative h2 { color: var(--accent); margin: 0; }
+.panel--narrative h3 {
+  margin: 0 0 6px; font-size: 13px; color: var(--muted);
+  letter-spacing: 0.03em; text-transform: none; font-weight: 600;
+}
+.panel--narrative .debrief-summary { margin: 0; }
+.panel--narrative li { line-height: 1.55; }
+
+.panel--critical li { display: grid; gap: 4px; }
+.panel--critical p { margin: 0; }
+.guidance { color: var(--ok); font-size: 13px; }
+.aside { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+.sources { color: var(--muted); font-size: 12px; }
+
+/* ── user guide ──────────────────────────────────────────────────────────── */
+
+/* The card gap is tuned for form rows; prose sections need more air. */
+.guide, .features { margin-top: 6vh; gap: 18px; }
+.guide p, .features p { margin: 0 0 10px; line-height: 1.6; max-width: 64ch; }
+.guide p:last-child, .features p:last-child { margin-bottom: 0; }
+.guide dl, .features dl { margin: 0; display: grid; gap: 10px; }
+.guide dt, .features dt { font-weight: 600; }
+.guide dt em, .features dt em { font-style: normal; font-weight: 400; color: var(--muted); }
+.guide dd, .features dd { margin: 2px 0 0; line-height: 1.6; color: var(--muted); max-width: 64ch; }
+
+/* Live copies of the real controls, shown as specimens rather than as chrome:
+   the inset well is what tells you these are not the buttons themselves. */
+.guide-demos { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 12px; }
+.guide-demo { margin: 0; display: grid; gap: 6px; justify-items: start; }
+.guide-demo-stage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+/* Belt and braces behind `inert`, which already removes pointer events. */
+.guide-demo-stage { pointer-events: none; user-select: none; }
+.guide-demo-stage .turn-row input { width: 210px; }
+.guide-demo figcaption { max-width: 32ch; }
+
+/* ── features ────────────────────────────────────────────────────────────── */
+
+/* Three levels, and they must not be confusable — a bold chart title read as a
+   section heading before this existed. Part headings are large and numbered,
+   section headings keep the small uppercase panel style, figure captions are
+   numbered and quiet. */
+.features .part {
+  margin: 26px 0 2px;
+  font-size: 21px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+.features .part:first-of-type { margin-top: 8px; }
+/* The treatment the debrief gives its panels, one level down from a part. */
+.features .panel h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fig-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+}
+.fig-title { font-size: 14px; color: var(--ink); }
+
+/* The topics a trainee can ask for, listed rather than described — the list is
+   short enough to show and specific enough to be worth showing. */
+.topic-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 10px; }
+.topic-chips span {
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+/* Worked figures. Only tables may outrun the measure, and then only inside
+   their own scroller. */
+.table-wrap { overflow-x: auto; margin: 0 0 10px; }
+table.figures { border-collapse: collapse; font-size: 13px; min-width: 420px; }
+table.figures th, table.figures td {
+  text-align: left;
+  padding: 7px 14px 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+table.figures th {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+table.figures td em { font-style: normal; font-size: 11px; color: var(--muted); }
+table.figures td.up { color: var(--ok); }
+table.figures td.down { color: var(--muted); }
+
+/* The headline figures. Tabular numerals so the row does not jitter when the
+   numbers arrive and replace the em dashes. */
+.stats { display: flex; flex-wrap: wrap; gap: 10px; }
+.stat {
+  flex: 1 1 140px;
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.stat b { font-size: 22px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); line-height: 1.35; }
+
+/* The technical tier. The clay rule down the left is what marks it as an aside
+   rather than more of the same page. */
+details.deep { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; }
+.deep summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.deep summary:hover { color: var(--ink); }
+.deep[open] summary { color: var(--ink); margin-bottom: 8px; }
+.deep-body { padding-left: 12px; border-left: 2px solid var(--accent-soft); }
+.deep code { font-size: 12px; background: var(--panel-2); border-radius: 4px; padding: 1px 5px; }
+
+/* A chart slot is a screen, on the same argument as the vitals monitor above:
+   a data display is read, not filled in, and putting a chart on cream would
+   make a measurement look like a form field. So these wells are deliberately
+   off the page palette, which is also what lets a dark chart image sit in one
+   without a visible seam. */
+.chart-slot { margin: 0; display: grid; gap: 8px; }
+.chart-slot figcaption { display: grid; gap: 2px; }
+.chart-slot-stage {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  padding: 16px;
+  background: var(--screen);
+  border: 1px solid var(--screen-line);
+  border-radius: 12px;
+}
+/* Empty and waiting for an image reads as dashed; filled reads as solid. */
+.chart-slot-stage:not(:has(img)) { border-style: dashed; }
+.chart-slot img { max-width: 100%; height: auto; display: block; border-radius: 4px; }
+
+/* The numbers a slot shows until its chart lands — on the screen, so they read
+   as the chart's own data rather than as page text. */
+.mini-bars { width: 100%; max-width: 420px; display: grid; gap: 6px; }
+.mini-bars > div { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.mini-bars dt { font-weight: 400; color: #8fa3bd; }
+.mini-bars dd { margin: 0; color: #e8e4da; font-variant-numeric: tabular-nums; }
+.chart-slot-stage .hint { color: #8fa3bd; }
+
+/* ── reduced motion ──────────────────────────────────────────────────────── */
+
+/* Everything JavaScript-driven checks `reducedMotion` from the store and
+   collapses to a jump; this covers what is left in CSS. `!important` because a
+   per-element `animation-duration` set inline would otherwise win. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  /* The lightbar's whole point is the sweep. With motion off, leave it lit
+     rather than frozen on an arbitrary frame of the gradient. */
+  .lightbar span { background-position: 50% 0; }
+}

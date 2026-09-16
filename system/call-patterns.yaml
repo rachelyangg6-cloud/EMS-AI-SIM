@@ -1,0 +1,89 @@
+# What kind of call today is likely to be.
+#
+# Multipliers applied to a scenario's selection weight when its `conditions`
+# frontmatter contains the key. A scenario with no matching key keeps weight 1.0.
+# Everything here is hand-editable and offline: with EMS_LIVE_ENV unset, season
+# comes from the date and no network call is made.
+#
+# ── Keys must be condition slugs from system/source-vocabulary.json ──────────
+# `protocol-patterns --check` fails on a key that is not in the vocabulary and
+# warns on one that no approved scenario carries. A rule that matches nothing
+# changes no selection at all, and it should say so rather than look like it works.
+#
+# ── Concepts with no vocabulary entry yet ────────────────────────────────────
+# The implementation plan also called for heat-illness, copd, syncope,
+# trauma-mvc, trauma-fall and allergy. None exist as condition slugs, so rules
+# using them would be silent no-ops. They are recorded here rather than written
+# as dead weights; add the slug and tag some scenarios, then add the rule.
+#
+# ── These weights are clinical judgment ──────────────────────────────────────
+# They decide what a trainee practices on a given day. They have not been
+# reviewed by a practitioner.
+
+seasons:
+  winter:
+    respiratory-failure: 1.4
+    hypoxia: 1.3
+    acute-mi: 1.2
+    chest-pain: 1.2
+    hypothermia: 2.0
+  spring:
+    asthma: 1.6
+    anaphylaxis: 2.0
+  summer:
+    anaphylaxis: 1.4
+    # heat-illness: 2.2   ← no vocabulary slug
+    # trauma-mvc: 1.2     ← no vocabulary slug
+  fall:
+    asthma: 1.3
+    respiratory-failure: 1.2
+
+conditions:
+  aqi_gt_150:
+    asthma: 2.2
+    hypoxia: 1.6
+    respiratory-failure: 1.5
+  aqi_gt_300:
+    asthma: 3.0
+    hypoxia: 2.0
+    respiratory-failure: 1.8
+    acute-mi: 1.4
+  heat_index_gt_95:
+    # Nothing to weight until a heat-illness slug exists and scenarios carry it.
+    {}
+  flu_season_peak:
+    respiratory-failure: 1.5
+    sepsis: 1.3   # in the vocabulary, but no approved scenario carries it yet
+
+# ── What the weather is doing ────────────────────────────────────────────────
+# Shares of days per season, drawn from when the scenario itself says nothing.
+# Keys must be weather values the scene renderer understands (see
+# `_WEATHER_PATTERNS` in ems/sim/scene.py); `protocol-patterns --check` fails on
+# one that is not. Shares within a season are normalised, so they need not sum
+# to exactly 1.0 after you edit them.
+#
+# `smoke` and `heat` are deliberately absent: they are not guessed, they are
+# read from the AQI and heat index directly. `fog` is absent because NOAA
+# publishes no fog-days table — there is nothing to source a number from, and a
+# made-up one would be worse than letting the scenario text say it.
+#
+# ── Where these numbers come from ────────────────────────────────────────────
+# Averaged over the 229 contiguous-US stations present in both NOAA tables:
+#   precipitation days  https://www.ncei.noaa.gov/sites/default/files/2024-11/prge0123.txt
+#                       (CCD, mean days with ≥0.01 in, through 2023)
+#   normal mean temp    https://www.ncei.noaa.gov/sites/default/files/2025-02/nrmavg.txt
+#                       (1991–2020 Normals)
+# Precipitation splits into rain and snow by the month's normal mean
+# temperature: all snow at ≤30 °F, all rain at ≥40 °F, linear between. A dry day
+# counts as `cold` below 32 °F, half-weighted up to 40 °F.
+#
+# ── This is a national average ───────────────────────────────────────────────
+# Which means it is wrong everywhere in particular. A Phoenix winter and a
+# Buffalo winter are both in here and neither looks like this. Retune for your
+# own service area when you know what a February call actually looks like.
+
+weather:
+  winter: {clear: 0.35, cold: 0.33, rain: 0.16, snow: 0.16}
+  spring: {clear: 0.63, rain: 0.30, cold: 0.05, snow: 0.02}
+  summer: {clear: 0.71, rain: 0.29}
+  fall:   {clear: 0.70, rain: 0.25, cold: 0.04, snow: 0.01}
